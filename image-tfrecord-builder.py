@@ -21,10 +21,10 @@ def _int64_feature(value):
 def _bytes_feature(value):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-def _build_examples_list():
+def _build_examples_list(input_folder):
     examples = []
-    for classname in os.listdir(app['IMAGES_INPUT_FOLDER']):
-        class_dir = os.path.join(app['IMAGES_INPUT_FOLDER'], classname)
+    for classname in os.listdir(input_folder):
+        class_dir = os.path.join(input_folder, classname)
         if (os.path.isdir(class_dir)):
             for filename in os.listdir(class_dir):
                 filepath = os.path.join(class_dir, filename)
@@ -64,10 +64,22 @@ def _write_tfrecord(examples, output_filename):
             pass
     writer.close()
 
-examples = _build_examples_list()
+def _write_sharded_tfrecord(examples, number_of_shards, base_output_filename, is_training = True):
+    sharded_examples = _split_list(examples, number_of_shards)
+    for count, shard in enumerate(sharded_examples, start = 1):
+        output_filename = '{0}{1}_{2:05d}of{3:05d}.tfrecord'.format(
+            base_output_filename,
+            'training' if is_training else 'test',
+            count,
+            number_of_shards 
+        )
+        _write_tfrecord(shard, output_filename)
+
+
+examples = _build_examples_list(app['IMAGES_INPUT_FOLDER'])
 training_examples, test_examples = _get_examples_share(examples, app['TRAINING_EXAMPLES_SPLIT']) # pylint: disable=unbalanced-tuple-unpacking
 
-_write_tfrecord(training_examples, app['OUTPUT_FILENAME'] + '.training')
-_write_tfrecord(test_examples, app['OUTPUT_FILENAME'] + '.test')
+_write_sharded_tfrecord(training_examples, app['NUMBER_OF_SHARDS'], app['OUTPUT_FILENAME'])
+_write_sharded_tfrecord(test_examples, app['NUMBER_OF_SHARDS'], app['OUTPUT_FILENAME'], False)
 
 sys.stdout.flush()
