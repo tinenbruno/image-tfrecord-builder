@@ -51,23 +51,25 @@ def _write_tfrecord(examples, output_filename):
     writer = tf.python_io.TFRecordWriter(output_filename)
     for example in examples:
         try:
-            image = _load_image(example.path)
+            image = _load_image(example['path'])
             if image is not None:
+                encoded_image_string = cv2.imencode('.jpg', image)[1].tostring()
                 feature = {
-                    'train/label': _int64_feature(example.classname),
-                    'train/image': _bytes_feature(tf.compat.as_bytes(image.tostring()))
+                    'train/label': _bytes_feature(tf.compat.as_bytes(example['classname'])),
+                    'train/image': _bytes_feature(tf.compat.as_bytes(encoded_image_string))
                 }
 
                 tf_example = tf.train.Example(features = tf.train.Features(feature=feature))
                 writer.write(tf_example.SerializeToString())
-        except:
+        except Exception as inst:
+            print(inst)
             pass
     writer.close()
 
 def _write_sharded_tfrecord(examples, number_of_shards, base_output_filename, is_training = True):
     sharded_examples = _split_list(examples, number_of_shards)
     for count, shard in enumerate(sharded_examples, start = 1):
-        output_filename = '{0}{1}_{2:05d}of{3:05d}.tfrecord'.format(
+        output_filename = '{0}_{1}_{2:02d}of{3:02d}.tfrecord'.format(
             base_output_filename,
             'training' if is_training else 'test',
             count,
