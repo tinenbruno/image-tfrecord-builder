@@ -28,6 +28,7 @@ You will also need to adjust the `settings.py`.
 | OUTPUT_FILENAME | Absolute base filename for output (can be used with a remote setting as well) | /home/user/output |
 | NUMBER_OF_SHARDS | Number of splits for both training and test tfrecord files | 2 |
 | TRAINING_EXAMPLES_SPLIT | Percentage of examples that will be used as training | 0.8 |
+| SEED | Seed to allow example shuffling with repeatability | 123 |
 
 ### Requirements
 

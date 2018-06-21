@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 
 import cv2
 import numpy as np
@@ -19,7 +20,7 @@ def _load_image(path):
 def _bytes_feature(value):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-def _build_examples_list(input_folder):
+def _build_examples_list(input_folder, seed):
     examples = []
     for classname in os.listdir(input_folder):
         class_dir = os.path.join(input_folder, classname)
@@ -32,6 +33,8 @@ def _build_examples_list(input_folder):
                 }
                 examples.append(example)
 
+    random.seed(seed)
+    random.shuffle(examples)
     return examples
 
 def _split_list(alist, wanted_parts=1):
@@ -76,7 +79,7 @@ def _write_sharded_tfrecord(examples, number_of_shards, base_output_filename, is
         _write_tfrecord(shard, output_filename)
 
 
-examples = _build_examples_list(app['IMAGES_INPUT_FOLDER'])
+examples = _build_examples_list(app['IMAGES_INPUT_FOLDER'], app['SEED'])
 training_examples, test_examples = _get_examples_share(examples, app['TRAINING_EXAMPLES_SPLIT']) # pylint: disable=unbalanced-tuple-unpacking
 
 print("Creating training shards", flush = True)
