@@ -3,6 +3,7 @@ import sys
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 import tensorflow as tf
 from settings import app
@@ -14,9 +15,6 @@ def _load_image(path):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image.astype(np.float32)
     return None
-
-def _int64_feature(value):
-  return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 def _bytes_feature(value):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -49,7 +47,7 @@ def _get_examples_share(examples, training_split):
 
 def _write_tfrecord(examples, output_filename):
     writer = tf.python_io.TFRecordWriter(output_filename)
-    for example in examples:
+    for example in tqdm(examples):
         try:
             image = _load_image(example['path'])
             if image is not None:
@@ -68,7 +66,7 @@ def _write_tfrecord(examples, output_filename):
 
 def _write_sharded_tfrecord(examples, number_of_shards, base_output_filename, is_training = True):
     sharded_examples = _split_list(examples, number_of_shards)
-    for count, shard in enumerate(sharded_examples, start = 1):
+    for count, shard in tqdm(enumerate(sharded_examples, start = 1)):
         output_filename = '{0}_{1}_{2:02d}of{3:02d}.tfrecord'.format(
             base_output_filename,
             'training' if is_training else 'test',
@@ -81,7 +79,8 @@ def _write_sharded_tfrecord(examples, number_of_shards, base_output_filename, is
 examples = _build_examples_list(app['IMAGES_INPUT_FOLDER'])
 training_examples, test_examples = _get_examples_share(examples, app['TRAINING_EXAMPLES_SPLIT']) # pylint: disable=unbalanced-tuple-unpacking
 
+print("Creating training shards", flush = True)
 _write_sharded_tfrecord(training_examples, app['NUMBER_OF_SHARDS'], app['OUTPUT_FILENAME'])
+print("\nCreating test shards", flush = True)
 _write_sharded_tfrecord(test_examples, app['NUMBER_OF_SHARDS'], app['OUTPUT_FILENAME'], False)
-
-sys.stdout.flush()
+print("\n", flush = True)
